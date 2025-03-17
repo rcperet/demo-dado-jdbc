@@ -4,7 +4,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import db.DB;
 import db.DbException;
@@ -14,11 +17,17 @@ import model.entities.Seller;
 
 public class SellerDaoJDBC implements SellerDao{
 	
-	private final static String SQL_SELECT = "SELECT a.id, a.name, a.email, a.birthdate, a.basesalary, a.departmentId, b.name as depName " 
+	private final static String SQL_SELECT_BY_ID = "SELECT a.id, a.name, a.email, a.birthdate, a.basesalary, a.departmentId, b.name as depName " 
 			+ "FROM seller a "
 			+ "INNER JOIN department b "
 			+ "ON a.departmentId = b.id "
 			+ "WHERE a.id = ?";
+	
+	private final static String SQL_SELECT_BY_DEPARTMENT = "SELECT a.id, a.name, a.email, a.birthdate, a.basesalary, a.departmentId, b.name as depName " 
+			+ "FROM seller a "
+			+ "INNER JOIN department b "
+			+ "ON a.departmentId = b.id "
+			+ "WHERE b.id = ?";
 	
 	private Connection conn; 
 	
@@ -51,7 +60,7 @@ public class SellerDaoJDBC implements SellerDao{
 		
 		try {
 			
-			st = conn.prepareStatement(SQL_SELECT);
+			st = conn.prepareStatement(SQL_SELECT_BY_ID);
 			st.setInt(1, id);
 			rs = st.executeQuery();
 			
@@ -93,6 +102,41 @@ public class SellerDaoJDBC implements SellerDao{
 		dep.setId(rs.getInt("departmentId"));
 		dep.setName(rs.getString("DepName"));
 		return dep;
+	}
+
+	@Override
+	public List<Seller> findByDepartment(Department department) {
+		PreparedStatement st = null;
+		ResultSet rs = null;
+		
+		try {
+			
+			st = conn.prepareStatement(SQL_SELECT_BY_DEPARTMENT);
+			st.setInt(1, department.getId());
+			rs = st.executeQuery();
+			List<Seller> list = new ArrayList<>(); 
+			Map<Integer, Department> map = new HashMap<>();
+			
+			while(rs.next()) {
+				Department dep = map.get(rs.getInt("departmentId"));
+				
+				if(dep == null) {
+					dep = instantiateDepartment(rs);
+					map.put(rs.getInt("departmentId"), dep);
+				}
+				
+				Seller obj = instantiateSeller(rs, dep);
+				list.add(obj);
+			}
+			
+			return list;
+			
+		} catch(SQLException e) {
+			throw new DbException(e.getMessage());
+		} finally {
+			DB.closeStatement(st);
+			DB.closeResultSet(rs);
+		}
 	}
 
 }
