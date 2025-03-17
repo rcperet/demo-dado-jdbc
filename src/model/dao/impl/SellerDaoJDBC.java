@@ -17,17 +17,14 @@ import model.entities.Seller;
 
 public class SellerDaoJDBC implements SellerDao{
 	
-	private final static String SQL_SELECT_BY_ID = "SELECT a.id, a.name, a.email, a.birthdate, a.basesalary, a.departmentId, b.name as depName " 
+	private final static String  SQL_SELECT_DEFAULT = "SELECT a.id, a.name, a.email, a.birthdate, a.basesalary, a.departmentId, b.name as depName " 
 			+ "FROM seller a "
 			+ "INNER JOIN department b "
-			+ "ON a.departmentId = b.id "
-			+ "WHERE a.id = ?";
+			+ "ON a.departmentId = b.id "; 
 	
-	private final static String SQL_SELECT_BY_DEPARTMENT = "SELECT a.id, a.name, a.email, a.birthdate, a.basesalary, a.departmentId, b.name as depName " 
-			+ "FROM seller a "
-			+ "INNER JOIN department b "
-			+ "ON a.departmentId = b.id "
-			+ "WHERE b.id = ?";
+	private final static String WHERE_BY_ID = "WHERE a.id = ?";
+	
+	private final static String WHERE_BY_DEPARTMENT = "WHERE b.id = ?";
 	
 	private Connection conn; 
 	
@@ -60,7 +57,7 @@ public class SellerDaoJDBC implements SellerDao{
 		
 		try {
 			
-			st = conn.prepareStatement(SQL_SELECT_BY_ID);
+			st = conn.prepareStatement(SQL_SELECT_DEFAULT + WHERE_BY_ID);
 			st.setInt(1, id);
 			rs = st.executeQuery();
 			
@@ -82,8 +79,36 @@ public class SellerDaoJDBC implements SellerDao{
 
 	@Override
 	public List<Seller> findAll() {
-		// TODO Auto-generated method stub
-		return null;
+		PreparedStatement st = null;
+		ResultSet rs = null;
+		
+		try {
+			
+			st = conn.prepareStatement(SQL_SELECT_DEFAULT);
+			rs = st.executeQuery();
+			List<Seller> list = new ArrayList<>(); 
+			Map<Integer, Department> map = new HashMap<>();
+			
+			while(rs.next()) {
+				Department dep = map.get(rs.getInt("departmentId"));
+				
+				if(dep == null) {
+					dep = instantiateDepartment(rs);
+					map.put(rs.getInt("departmentId"), dep);
+				}
+				
+				Seller obj = instantiateSeller(rs, dep);
+				list.add(obj);
+			}
+			
+			return list;
+			
+		} catch(SQLException e) {
+			throw new DbException(e.getMessage());
+		} finally {
+			DB.closeStatement(st);
+			DB.closeResultSet(rs);
+		}
 	}
 	
 	private Seller instantiateSeller(ResultSet rs, Department dep) throws SQLException {
@@ -111,7 +136,7 @@ public class SellerDaoJDBC implements SellerDao{
 		
 		try {
 			
-			st = conn.prepareStatement(SQL_SELECT_BY_DEPARTMENT);
+			st = conn.prepareStatement(SQL_SELECT_DEFAULT + WHERE_BY_DEPARTMENT);
 			st.setInt(1, department.getId());
 			rs = st.executeQuery();
 			List<Seller> list = new ArrayList<>(); 
