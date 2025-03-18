@@ -29,6 +29,13 @@ public class SellerDaoJDBC implements SellerDao{
 	
 	private final static String SQL_INSERT = "INSERT INTO seller (name, email, birthdate, basesalary, departmentid) VALUES (?, ?, ?, ?, ?)";
 	
+	private final static String SQL_UPDATE = "UPDATE seller a "
+			+ "SET a.name = ? "
+			+ ", a.email = ? "
+			+ ", a.birthdate = ? "
+			+ ", a.basesalary = ? "
+			+ ", a.departmentid = ? ";
+	
 	private Connection conn; 
 	
 	public SellerDaoJDBC(Connection conn) {
@@ -48,18 +55,19 @@ public class SellerDaoJDBC implements SellerDao{
 			
 			int rowsAffectd = st.executeUpdate();
 			
-			if(rowsAffectd > 0) {
-				ResultSet rs = st.getGeneratedKeys();
-				if(rs.next()) {
-					int id = rs.getInt(1);
-					seller.setId(id);
-				}
-				DB.closeResultSet(rs);
-			} else {
+			if(rowsAffectd == 0) {
 				throw new DbException("Unexpected error! No rows affected");
 			}
+			
+			ResultSet rs = st.getGeneratedKeys();
+			if(rs.next()) {
+				int id = rs.getInt(1);
+				seller.setId(id);
+			}
+			DB.closeResultSet(rs);
+			
 		} catch(SQLException e) {
-			new DbException(e.getMessage());
+			throw new DbException(e.getMessage());
 		} finally {
 			DB.closeStatement(st);
 		}
@@ -67,7 +75,23 @@ public class SellerDaoJDBC implements SellerDao{
 
 	@Override
 	public void update(Seller seller) {
-		// TODO Auto-generated method stub
+		PreparedStatement st = null;
+		try {
+			st = conn.prepareStatement(SQL_UPDATE + WHERE_BY_ID);
+			st.setString(1, seller.getName());
+			st.setString(2, seller.getEmail());
+			st.setDate(3, new java.sql.Date(seller.getBirthDate().getTime()));
+			st.setDouble(4, seller.getBaseSalary());
+			st.setInt(5, seller.getDepartment().getId());
+			st.setInt(6, seller.getId());
+			
+			st.executeUpdate();
+			
+		} catch(SQLException e) {
+			throw new DbException(e.getMessage());
+		} finally {
+			DB.closeStatement(st);
+		}
 		
 	}
 
