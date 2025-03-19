@@ -18,23 +18,25 @@ import model.entities.Seller;
 
 public class SellerDaoJDBC implements SellerDao{
 	
-	private final static String  SQL_SELECT_DEFAULT = "SELECT a.id, a.name, a.email, a.birthdate, a.basesalary, a.departmentId, b.name as depName " 
+	private static final String  SQL_SELECT_DEFAULT = "SELECT a.id, a.name, a.email, a.birthdate, a.basesalary, a.departmentId, b.name as depName " 
 			+ "FROM seller a "
 			+ "INNER JOIN department b "
 			+ "ON a.departmentId = b.id "; 
 	
-	private final static String WHERE_BY_ID = "WHERE a.id = ?";
+	private static final String WHERE_BY_ID = "WHERE a.id = ?";
 	
-	private final static String WHERE_BY_DEPARTMENT = "WHERE b.id = ?";
+	private static final String WHERE_BY_DEPARTMENT = "WHERE b.id = ?";
 	
-	private final static String SQL_INSERT = "INSERT INTO seller (name, email, birthdate, basesalary, departmentid) VALUES (?, ?, ?, ?, ?)";
+	private static final String SQL_INSERT = "INSERT INTO seller (name, email, birthdate, basesalary, departmentid) VALUES (?, ?, ?, ?, ?)";
 	
-	private final static String SQL_UPDATE = "UPDATE seller a "
+	private static final String SQL_UPDATE = "UPDATE seller a "
 			+ "SET a.name = ? "
 			+ ", a.email = ? "
 			+ ", a.birthdate = ? "
 			+ ", a.basesalary = ? "
 			+ ", a.departmentid = ? ";
+	
+	private static final String  SQL_DELETE = "DELETE FROM seller WHERE id = ?";
 	
 	private Connection conn; 
 	
@@ -97,7 +99,18 @@ public class SellerDaoJDBC implements SellerDao{
 
 	@Override
 	public void deleteById(Integer id) {
-		// TODO Auto-generated method stub
+		PreparedStatement st = null;
+		try {
+			
+			st = conn.prepareStatement(SQL_DELETE);
+			st.setInt(1, id);
+			st.executeUpdate();
+			
+		} catch(SQLException e) {
+			throw new DbException(e.getMessage());
+		}finally {
+			DB.closeStatement(st);
+		}
 		
 	}
 
